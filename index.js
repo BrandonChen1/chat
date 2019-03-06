@@ -1,21 +1,39 @@
-var app = require('express')();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
+var app = require('express')(),
+    http = require('http').Server(app),
+    io = require('socket.io')(http),
+    nicknames = [];
 
 app.get('/', function(req, res){
- res.sendFile(__dirname + '/login.html');
-});
-
-var name = '';
-app.get('/chat', function(req, res){
- name = req.query['username'];
  res.sendFile(__dirname + '/chat.html');
 });
 
+
 io.on('connection', function(socket){
-  socket.on('chat message', function(msg){
-  io.emit('chat message', msg);
- });
+    socket.on('new user', function(data, callback){
+        if (nicknames.indexOf(data) != -1){
+            callback(false);
+        }
+        else{
+            callback(true);
+            socket.nickname = data;
+            nicknames.push(socket.nickname);
+            updateNicknames();
+        }
+    });
+    socket.on('send message', function(data){
+        io.emit('chat message', {msg: data, nick: socket.nickname});
+    });
+
+    function updateNicknames(){
+        io.emit('usernames', nicknames);
+    }
+
+    socket.on('disconnect', function(data){
+       if(!socket.nickname) return;
+       io.emit('logout', socket.nickname);
+       nicknames.splice(nicknames.indexOf(socket.nickname), 1);
+       updateNicknames();
+    });
 });
 
 http.listen(3000, function(){

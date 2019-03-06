@@ -2,84 +2,113 @@
 <html lang="en">
 
 <style>
-    body{
-        font: 13px Arial, Helvetica;
+    #textbox{
+        height: 730px;
+        width: 500px;
+        float: left;
+        border: 1px lightblue solid;
     }
-    body .textbox{
-        height: 600px;
+    ul{
+        position: relative;
+        left: -10px;
+        list-style-type: none;
+    }
+    #sendmessage{
         position: fixed;
-        bottom: 45px;
-        padding: 2px;
-        margin-left: -2px;
-        width: 98.5%;
-        border-style: solid;
-        border-color: lightblue;
-        border-width: 3px;
+        float: left;
+        bottom: 15px;
+        width: 500px;
     }
-    form{
-        position: fixed;
-        bottom: 0;
-        width: 98.5%;
-        background: #000000;
-        padding: 3px;
-        margin-right: .5%;
-    }
-    form input{
-        border: 0;
+    form #m{
         padding: 10px;
-        width: 90%;
+        width: 300px;
     }
     form button{
         color: deepskyblue;
         background-color: lavender;
         padding: 10px;
-        width: 5%;
+        width: 80px;
         margin-left: 20px;
     }
-    #messages{
-        list-style-type: none;
-        margin: 0;
-        padding: 0;
+    #contentwrap{
+        display: none;
     }
-    #messages li{
-        padding: 5px 10px;
-    }
-    #messages li:nth-child(odd){
-        background: skyblue;
-    }
-
-
 </style>
 
 <head>
     <meta charset="UTF-8">
     <title>Welcome to my app</title>
-    <p>Welcome to my first chat app</p>
+    <p>Welcome to my chat app</p>
 </head>
 
 <body>
-    <div class = 'textbox'>
+    <div id = 'nickwrap'>
+        <p> Enter a nickname: </p>
+        <p id = "nickError"></p>
+        <form id = "setnickname">
+            <input size = '35' id = 'nick' autocomplete = 'off' required>
+            <input type = "submit">
+        </form>
+    </div>
 
-    <ul id = 'messages'></ul>
-    <form action = "">
-        <input id = 'm' autocomplete = 'off'>
-        <button> Send </button>
-    </form>
+    <div id = 'contentwrap'>
+
+        <div id = 'textbox'>
+            <ul id = 'messages'></ul>
+            <form id = 'sendmessage'>
+                <input id = 'm' autocomplete = 'off'>
+                <button> Send </button>
+            </form>
+        </div>
+
+        <div id = 'users'> </div>
+    </div>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
         $(function () {
-            var name = window.location.href;
-            var getName = name.split('=')[1];
             var socket = io();
-            $('form').submit(function(e){
-                e.preventDefault(); // prevents page reloading
-                socket.emit('chat message', $('#m').val());
-                $('#m').val('');
-                return false;
+            var $nickSubmit = $('#setnickname');
+            var $nickError = $('#nickError');
+            var $nickBox = $('#nick');
+            var $users = $('#users');
+            var $sendmessage = $('#sendmessage');
+
+            socket.on('usernames', function(data){
+               var html = '';
+               for(var i = 0; i < data.length; i++){
+                   html += data[i] + '<br/>'
+               }
+                $users.html(html);
             });
-            socket.on('chat message', function(msg){
-                $('#messages').append($('<li>').text(getName + ': ' + msg));
+
+            $nickSubmit.submit(function(e){
+                e.preventDefault();
+                socket.emit('new user', $nickBox.val(), function(data){
+                    if(data){
+                        $('#nickwrap').hide();
+                        $('#contentwrap').show();
+                    }
+                    else{
+                        $nickError.html('That username is already taken.');
+                    }
+                });
+                $nickBox.val('');
+            });
+
+            $sendmessage.submit(function(e){
+                e.preventDefault(); // prevents page reloading
+                socket.emit('send message', $('#m').val());
+                $('#m').val('');
+            });
+
+            socket.on('logout', function(data){
+               $('#messages').append($('<li>').html(data + ' has disconnected'));
+            });
+
+            socket.on('chat message', function(data){
+                $('#messages').append($('<li>').html( data.nick + ': ' + data.msg));
             });
         });
     </script>
