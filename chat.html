@@ -73,15 +73,20 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+
     <script>
+        //Function that always runs on client side
         $(function () {
             var socket = io();
+
+            //Variables of html ids gotten from jquery
             var $nickSubmit = $('#setnickname');
             var $nickError = $('#nickError');
             var $nickBox = $('#nick');
             var $users = $('#users');
             var $sendmessage = $('#sendmessage');
 
+            //Listens for 'username' from server side and adds the usernames to the website
             socket.on('usernames', function(data){
                var html = '';
                for(var i = 0; i < data.length; i++){
@@ -90,6 +95,8 @@
                 $users.html(html);
             });
 
+            //Waits for the nickname submit request from users
+            //Gotten from jquery checking the setnickname form
             $nickSubmit.submit(function(e){
                 e.preventDefault();
                 socket.emit('new user', $nickBox.val(), function(data){
@@ -104,6 +111,8 @@
                 $nickBox.val('');
             });
 
+            //Waits for sendmessage form request
+            //Emits a 'send message' to server side with the message
             $sendmessage.submit(function(e){
                 e.preventDefault(); // prevents page reloading
                 socket.emit('send message', $('#m').val(), function(data){
@@ -112,17 +121,32 @@
                 $('#m').val('');
             });
 
+            //Listens for 'load old msgs' and displays the previous 10 messages gotten from mongo
+            socket.on('load old msgs', function(docs){
+                for(var i = docs.length - 1; i >= 0; i--){
+                    displayMsg(docs[i]);
+                }
+            });
+
+            //Listens for the 'logout' emit from server side and displays disconnected
             socket.on('logout', function(data){
                $('#messages').append($('<li>').html(data + ' has disconnected'));
             });
 
+            //Listens for 'chat message' and displays it on the html
             socket.on('chat message', function(data){
-                $('#messages').append($('<li>').html( data.nick + ': ' + data.msg));
+                displayMsg(data);
             });
 
+            //Listens for 'private message' and appends to html
             socket.on('private message', function(data){
                 $('#messages').append($('<li id = "whisper">').html( data.nick + ': ' + data.msg));
             });
+
+            //Helper function
+            function displayMsg(data){
+                $('#messages').append($('<li>').html( data.nick + ': ' + data.msg));
+            }
         });
     </script>
     </div>
