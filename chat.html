@@ -36,6 +36,10 @@
     li:nth-child(2n) {
         background-color: lavender;
     }
+    #whisper{
+        color: gray;
+        font-style: italic;
+    }
 </style>
 
 <head>
@@ -102,7 +106,9 @@
 
             $sendmessage.submit(function(e){
                 e.preventDefault(); // prevents page reloading
-                socket.emit('send message', $('#m').val());
+                socket.emit('send message', $('#m').val(), function(data){
+                    $('#messages').append($('<li>').html( data ));
+                });
                 $('#m').val('');
             });
 
@@ -112,6 +118,10 @@
 
             socket.on('chat message', function(data){
                 $('#messages').append($('<li>').html( data.nick + ': ' + data.msg));
+            });
+
+            socket.on('private message', function(data){
+                $('#messages').append($('<li id = "whisper">').html( data.nick + ': ' + data.msg));
             });
         });
     </script>
